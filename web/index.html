@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="cn-zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <title>登录</title>
+    <script src="./js/vue.js"></script>
+    <script src="./js/axios.js"></script>
+    <script src="./js//jquery.min.js"></script>
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="css/bootstrap-theme.min.css">
+    <script src="js/bootstrap.min.js"></script>
+</head>
+<body style="width: 100vw; height: 100vh;">
+    <nav class="navbar navbar-default" role="navigation">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <a class="navbar-brand" href="#">WorldYun 云盘</a>
+            </div>
+    </nav>
+
+    <div class="container" id="user" style="width: 35%;padding-top: 5%;">
+        <!-- 登录页 -->
+        <div v-if="page == 1">
+            <h2 class="form-signin-heading">登录
+                <button type="button" class="btn btn-info" style="float:right" v-on:click="page = 2">没有账号？ 去注册</button>
+            </h2>
+            <label for="inputEmail" class="sr-only">用户名</label>
+            <input type="text" id="inputEmail" class="form-control" placeholder="User Name" required autofocus
+                v-model="uname">
+            <label for="inputPassword" class="sr-only">密码</label>
+            <input type="password" id="inputPassword" class="form-control" placeholder="Password" required
+                v-model="passwd">
+            <br />
+            <button class="btn btn-lg btn-primary btn-block" v-on:click="login"
+                v-bind:class="{ disabled : !acve}">登录</button>
+
+        </div>
+        <!-- 注册页 -->
+        <div v-if="page == 2">
+            <h2 class="form-signin-heading">注册
+                <button type="button" class="btn btn-info" style="float:right" v-on:click="page = 1">已有账号 去登录</button>
+            </h2>
+            <label for="inputEmail" class="sr-only">用户名</label>
+            <p>{{msg_reg}}</p>
+            <input type="text" id="inputEmail" class="form-control" :placeholder="place" required autofocus
+                v-model="uname_reg" @blur="test">
+            <label for="inputPassword" class="sr-only">密码</label>
+            <input type="password" id="inputPassword" class="form-control" placeholder="密码" required
+                v-model="passwd_reg">
+            <label for="inputPassword" class="sr-only">确认密码</label>
+            <input type="password" id="inputPassword" class="form-control" placeholder="重复密码" required
+                v-model="passwd_ag_reg">
+            <br />
+            <button class="btn btn-lg btn-primary btn-block" v-on:click="regist"
+                v-bind:class="{ disabled : !acve_reg}">注册</button>
+        </div>
+        <!-- 信息提示页 -->
+        <div v-if="page == 3">
+            <h1>
+                <p class="text-center">{{msg}}</p>
+            </h1>
+        </div>
+    </div>
+</body>
+<script>
+    var app = new Vue({
+        el: '#user',
+        data: {
+            page: 1,
+            uname: "",
+            passwd: "",
+            uname_reg: "",
+            passwd_reg: "",
+            passwd_ag_reg: "",
+            msg: "",
+            msg_reg: "",
+            place: "用户名"
+        },
+        methods: {
+            login: function (e) {
+                if (!this.acve) {
+                    alert('请填写用户名或密码')
+                    return;
+                }
+                axios.post('./user', {
+                    type: 'login',
+                    data: {
+                        uname: this.uname,
+                        passwd: this.passwd
+                    }
+                })
+                    .then(function (response) {
+                        if (response.data.login) {
+                            app.msg = "登录成功! 即将跳转..."
+                            app.page = 3
+                            setTimeout(function () {
+                                window.location.href="./file.html";
+                            }, 1500);
+                        } else {
+                            app.msg = '登录失败, 错误代码 ' + response.data.data.code
+                            app.page = 3
+                            setTimeout(function () {
+                                app.page = 1
+                            }, 2000);
+                        }
+                        app.passwd = ""
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    });
+            },
+            regist: function (e) {
+                if (!this.acve_reg) {
+                    alert('请填写用户名或密码')
+                    return;
+                }
+                axios.post('./user', {
+                    type: 'regist',
+                    data: {
+                        uname: this.uname_reg,
+                        passwd: this.passwd_reg
+                    }
+                })
+                    .then(function (response) {
+                        if (response.data.regist) {
+                            app.msg = "注册成功! 即将跳转..."
+                            app.page = 3
+                            app.uname = app.uname_reg
+                            setTimeout(function () {
+                                app.page = 1
+                            }, 1500)
+                        } else {
+                            app.msg = '注册失败, 错误代码 ' + response.data.data.code
+                            app.page = 3
+                            setTimeout(function () {
+                                app.page = 2
+                            }, 2000)
+                        }
+                        app.passwd = ""
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    });
+            },
+            test: function (e) {
+                if (this.uname_reg == "") {
+                    return;
+                }
+                let url = "./caniuse?uname=" + this.uname_reg;
+                axios.get(url)
+                    .then(function (response) {
+                        if (!response.data.data.caniuse) {
+                            app.uname_reg = ""
+                            app.place = "该用户名不可用, 请尝试其他名称"
+                        }
+                    })
+                    .catch(function (error) {
+                        console.log(error);
+                    });
+            }
+        },
+        computed: {
+            acve: function (e) {
+                if (this.uname == "" || this.passwd == "") {
+                    return false
+                }
+                return true
+            },
+            acve_reg: function (e) {
+                if (this.uname_reg == "" || this.passwd_reg == "" || this.passwd_ag_reg == "") {
+                    return false
+                } else {
+                    return (this.passwd_reg == this.passwd_ag_reg)
+                }
+            }
+        }
+    });
+</script>
+
+</html>
